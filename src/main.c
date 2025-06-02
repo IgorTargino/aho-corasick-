@@ -44,6 +44,8 @@ int main(void) {
     ac_add_pattern(&ac3, "presidente");
     ac_add_pattern(&ac3, "brasil");
     ac_add_pattern(&ac3, "pib");
+    ac_add_pattern(&ac3, "especialistas");
+    ac_add_pattern(&ac3, "pib");
     
     ac_build_automaton(&ac3);
 
