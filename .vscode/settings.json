@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "aho_corasick.h": "c",
+        "stdbool.h": "c",
+        "stddef.h": "c",
+        "string.h": "c",
+        "stdio.h": "c"
+    }
+}
