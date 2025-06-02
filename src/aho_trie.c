@@ -12,7 +12,7 @@ void aho_trie_init(ac_vertex_t* v) {
     }
 }
 
-int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* pattern) {
+int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* pattern, int pattern_idx) {
     int current_node_idx = 0;
     for (int i = 0; pattern[i] != '\0'; ++i) {
         char ch = pattern[i];
@@ -29,5 +29,8 @@ int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* patter
         current_node_idx = trie[current_node_idx].next[char_idx];
     }
     trie[current_node_idx].output = true;
+    if (trie[current_node_idx].num_patterns < AC_MAX_PATTERNS) {
+        trie[current_node_idx].pattern_indices[trie[current_node_idx].num_patterns++] = pattern_idx;
+    }
     return 0;
 }

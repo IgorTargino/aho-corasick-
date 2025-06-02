@@ -4,6 +4,6 @@
 #include "aho_corasick.h"
 
 void aho_trie_init(ac_vertex_t* v);
-int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* pattern);
+int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* pattern, int pattern_idx);
 
 #endif 
