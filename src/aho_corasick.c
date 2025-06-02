@@ -1,31 +1,23 @@
 #include "aho_corasick.h"
-#include <stdio.h>   // Para printf, fprintf, stderr
-#include <string.h>  // Para strlen (usado em ac_add_pattern para iteração, embora não estritamente)
-                     // e para outras funções de string se necessário.
+#include <stdio.h>
+#include <string.h>  
 
-// --- Variáveis Estáticas Internas ao Módulo (Estado do Autômato) ---
-
-// Array estático para os nós do autômato.
 static ac_vertex_t trie_automaton_nodes[AC_MAX_VERTICES];
 static int current_nodes_count = 0; // Contador de nós utilizados
 
-// Fila para BFS (usada na construção dos links de falha)
-// Tamanho máximo para a fila BFS, não pode ser maior que o total de nós.
 #define AC_MAX_QUEUE_SIZE AC_MAX_VERTICES
 static int bfs_internal_queue[AC_MAX_QUEUE_SIZE];
 static int queue_internal_head = 0;
 static int queue_internal_tail = 0;
 
-// --- Funções Auxiliares Internas ---
 
-// Inicializa um novo vértice/nó
 static void init_ac_vertex(ac_vertex_t* v) {
     if (v == NULL) return;
-    v->link = 0; // Link de falha padrão (para a raiz), será recalculado
+    v->link = 0; 
     v->output = false;
     for (int i = 0; i < AC_K_ALPHABET_SIZE; ++i) {
-        v->next[i] = -1; // -1 indica ausência de transição
-        v->go[i] = -1;   // -1 indica que a transição 'go' não foi calculada/definida ainda
+        v->next[i] = -1; 
+        v->go[i] = -1;
     }
 }
 
