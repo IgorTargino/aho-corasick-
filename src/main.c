@@ -1,8 +1,8 @@
 #include "aho_corasick.h"
 #include <stdio.h>
 
-void ac_on_match(const char* pattern, int pos, int pattern_index) {
-    printf("Padrão encontrado: '%s' na posição %d (índice do padrão: %d)\n", pattern, pos, pattern_index);
+void ac_set_match_callback(const char* pattern, int pos) {
+    printf("Padrão encontrado: '%s' na posição %d\n", pattern, pos);
 }
 
 int main(void) {

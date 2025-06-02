@@ -88,7 +88,7 @@ void ac_search(ac_automaton_t *ac, const char* text) {
             if (ac->trie_automaton_nodes[temp_state_idx].output) {
                 for (int k = 0; k < ac->trie_automaton_nodes[temp_state_idx].num_patterns; ++k) {
                     int pat_idx = ac->trie_automaton_nodes[temp_state_idx].pattern_indices[k];
-                    ac_on_match(ac->patterns[pat_idx], i, pat_idx);
+                    ac_set_match_callback(ac->patterns[pat_idx], i);
                 }
             }
             if (temp_state_idx == 0) break;
