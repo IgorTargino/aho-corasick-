@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 
-void aho_trie_init(ac_vertex_t* v) {
-    if (v == NULL) return;
-    v->link = 0;
-    v->output = false;
+void aho_trie_init(ac_vertex_t *node) {
+    memset(node, 0, sizeof(ac_vertex_t));
     for (int i = 0; i < AC_K_ALPHABET_SIZE; ++i) {
-        v->next[i] = -1;
-        v->go[i] = -1;
+        node->next[i] = -1;
+        node->go[i] = -1;
     }
+    node->link = 0;
+    node->output = 0;
+    node->num_patterns = 0;
 }
 
 int aho_trie_add_pattern(ac_vertex_t* trie, int* nodes_count, const char* pattern, int pattern_idx) {

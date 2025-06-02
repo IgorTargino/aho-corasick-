@@ -25,7 +25,7 @@
  * @def AC_MAX_PATTERNS
  * @brief Número máximo de padrões que podem ser adicionados ao autômato.
  */
-#define AC_MAX_PATTERNS 10 
+#define AC_MAX_PATTERNS 40 
 
 /**
  * @def AC_MAX_PATTERNS_PER_NODE
