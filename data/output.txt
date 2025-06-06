@@ -1,12 +1,15 @@
-=== RESULTADO DA FILTRAGEM ===
+=== RESULTADO FILTRO AHO-CORASICK ===
 
-[001] PERMITIDA: esta e uma mensagem normal e segura
-[002] BLOQUEADA: alerta um virus foi detectado no seu email
-[003] BLOQUEADA: cuidado com links de phishing
-[004] PERMITIDA: o sistema reportou um erro grave
-[005] PERMITIDA: texto completamente limpo e aprovado
-[006] BLOQUEADA: nova tentativa de hack bloqueada
-[007] BLOQUEADA: promocao imperdivel nao e spam
-[008] BLOQUEADA: detectado malware no sistema
-[009] PERMITIDA: mensagem sem palavras proibidas
-[010] PERMITIDA: trojan encontrado no arquivo
+[001] CLEAN: esta e uma mensagem normal e segura
+[002] **SPAM**: alerta um virus foi detectado no seu email
+[003] **SPAM**: cuidado com links de phishing
+[004] CLEAN: o sistema reportou um erro grave
+[005] CLEAN: texto completamente limpo e aprovado
+[006] **SPAM**: nova tentativa de hack bloqueada
+[007] **SPAM**: promocao imperdivel nao e spam
+[008] **SPAM**: detectado malware no sistema
+
+=== ESTATÍSTICAS ===
+Total: 8
+Spam: 5
+Taxa: 62.5%

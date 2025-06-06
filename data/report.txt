@@ -1,13 +1,15 @@
-=== RELATORIO FILTRO DE CONTEUDO - AHO-CORASICK ===
+=== RELATÓRIO FILTRO AHO-CORASICK ===
 
-Configuracao do Filtro:
-  - Padroes carregados: 5
-  - Padroes adicionados: 5
-  - Vertices no automato: 29
+CONFIGURAÇÃO:
+  - Padrões carregados: 5
+  - Vértices criados: 29
+  - Limite máximo: 30 padrões, 30 vértices
 
-Resultados do Processamento:
+RESULTADOS:
   - Mensagens processadas: 10
-  - Mensagens bloqueadas: 5
-  - Taxa de bloqueio: 50.0%
+  - Spam detectado: 5
+  - Mensagens limpas: 5
+  - Taxa de spam: 50.0%
 
-Status: Filtro ativo e operacional
+STATUS:
+  ✅ Filtro funcionando - Spam detectado!

@@ -5,24 +5,20 @@
 #include "aho_queue.h"
 #include "aho_config.h"
 
+static const int INVALID_VERTEX = -1;
 
 typedef struct ac_vertex ac_vertex_t;
 typedef struct ac_automaton ac_automaton_t;
 
-// --- Automaton Vertex Structure ---
 struct ac_vertex {
-    // Trie structure
-    int next[AC_K_ALPHABET_SIZE];           // Direct transitions (trie edges)
-    int go[AC_K_ALPHABET_SIZE];             // Computed transitions (automaton edges)
-    int link;                               // Failure link (suffix link)
-    
-    // Pattern information
-    bool output;                            // True if this vertex represents end of pattern(s)
-    int pattern_indices[AC_MAX_PATTERNS_PER_VERTEX];  // Indices of patterns ending here
-    int num_patterns_at_vertex;             // Number of patterns ending at this vertex
+    int next[AC_K_ALPHABET_SIZE];
+    int go[AC_K_ALPHABET_SIZE];
+    int link;
+    bool output;
+    int pattern_indices[AC_MAX_PATTERNS_PER_VERTEX];
+    int num_patterns_at_vertex;
 };
 
-// --- Main Automaton Structure ---
 struct ac_automaton {
     ac_vertex_t vertices[AC_MAX_VERTICES];
     int current_vertex_count;
@@ -53,25 +49,10 @@ bool ac_add_pattern(ac_automaton_t *ac, const char* pattern);
  * @param ac Pointer to automaton structure
  */
 void ac_build_automaton(ac_automaton_t *ac);
-
-/**
- * Search for all patterns in the given text
- * Calls ac_set_match_callback for each match found
- * @param ac Pointer to built automaton structure
- * @param text Null-terminated text to search in
- */
 void ac_search(ac_automaton_t *ac, const char* text);
 
-// --- Match Callback ---
-/**
- * Callback function called when a pattern match is found
- * This function must be implemented by the user of the library
- * @param pattern The matched pattern string
- * @param position Position in text where pattern ends (0-based)
- */
 extern void ac_set_match_callback(const char* pattern, int position);
 
-// --- Utility Functions ---
 /**
  * Get current number of vertices in the automaton
  * @param ac Pointer to automaton structure
@@ -99,4 +80,15 @@ static inline bool ac_is_built(const ac_automaton_t *ac) {
     return ac && ac->current_vertex_count > 0 && ac->num_total_patterns > 0;
 }
 
-#endif // AHO_CORASICK_H
+static inline int char_to_index(char c) {
+    unsigned char uc = (unsigned char)c;
+    if (uc >= 'A' && uc <= 'Z') {
+        return uc - 'A';
+    }
+    if (uc >= 'a' && uc <= 'z') {
+        return uc - 'a';
+    }
+    return INVALID_VERTEX;
+}
+
+#endif

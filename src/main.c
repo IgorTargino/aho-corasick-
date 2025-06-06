@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include "aho_corasick.h"
 
-#define MAX_LINE_LENGTH 256
-#define MAX_PATTERNS_BUFFER 10
+#define MAX_LINE_LENGTH 128
+#define MAX_PATTERN_LENGTH 32
+#define MAX_FILE_BUFFER 1024
 
 #define PATTERNS_FILE "data/patterns.txt"
 #define INPUT_FILE "data/input.txt"
@@ -16,7 +17,6 @@ volatile bool g_forbidden_pattern_found = false;
 
 void ac_set_match_callback(const char* pattern_found, int text_position) {
     g_forbidden_pattern_found = true;
-    DEBUG_PRINTF("[FILTER] Detected: '%s' at position %d\n", pattern_found, text_position);
 }
 
 bool is_message_forbidden(ac_automaton_t* filter_automaton, const char* message) {
@@ -25,192 +25,197 @@ bool is_message_forbidden(ac_automaton_t* filter_automaton, const char* message)
     return g_forbidden_pattern_found;
 }
 
-static bool validate_automaton_state(const ac_automaton_t* filter) {
-    if (!ac_is_built(filter)) {
-        DEBUG_PRINTF("Erro: Automato nao construido!\n");
-        return false;
-    }
-    
-    if (ac_get_vertex_count(filter) == 0 || ac_get_pattern_count(filter) == 0) {
-        DEBUG_PRINTF("Erro: Automato vazio!\n");
-        return false;
-    }
-    
-    DEBUG_PRINTF("Automato validado com sucesso\n");
-    return true;
-}
-
-static int load_patterns_directly(const char* filename, ac_automaton_t* automaton) {
+static int read_file_complete(const char* filename, char* buffer, int max_len) {
     FILE* file = fopen(filename, "r");
     if (!file) {
-        DEBUG_PRINTF("Erro: Nao foi possivel abrir arquivo de padroes: %s\n", filename);
-        return 0;
+        DEBUG_PRINTF("❌ Erro: não foi possível abrir '%s'\n", filename);
+        return 1;
     }
     
-    int patterns_loaded = 0;
-    int patterns_added = 0;
-    char line[MAX_LINE_LENGTH]; // Apenas um buffer pequeno
+    setvbuf(file, NULL, _IONBF, 0);
     
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0;
-        
-        if (strlen(line) == 0) continue;
-        
-        patterns_loaded++;
-
-        if (patterns_added < AC_MAX_PATTERNS && ac_add_pattern(automaton, line)) {
-            patterns_added++;
-            DEBUG_PRINTF("  Padrao adicionado: '%s'\n", line);
-        } else {
-            DEBUG_PRINTF("  Padrao ignorado (limite ou erro): '%s'\n", line);
-        }
+    int len = 0;
+    int c;
+    while ((c = fgetc(file)) != EOF && len < max_len - 1) {
+        buffer[len++] = c;
+    }
+    buffer[len] = '\0';
+    
+    bool truncated = false;
+    if (len == max_len - 1 && (c = fgetc(file)) != EOF) {
+        truncated = true;
     }
     
     fclose(file);
-    DEBUG_PRINTF("Padroes carregados: %d, adicionados: %d\n", patterns_loaded, patterns_added);
+    
+    DEBUG_PRINTF("📊 Arquivo '%s': %d bytes lidos%s\n", 
+                 filename, len, truncated ? " (TRUNCADO!)" : "");
+    
+    return 0;
+}
+
+static int write_file_complete(const char* filename, const char* buffer) {
+    FILE* file = fopen(filename, "w");
+    if (!file) return 1;
+    
+    setvbuf(file, NULL, _IONBF, 0);
+    
+    int len = strlen(buffer);
+    for (int i = 0; i < len; i++) {
+        fputc(buffer[i], file);
+    }
+    
+    fclose(file);
+    return 0;
+}
+
+static int parse_patterns_from_buffer(const char* buffer, ac_automaton_t* automaton) {
+    char line[MAX_PATTERN_LENGTH];
+    int patterns_added = 0;
+    int buffer_pos = 0;
+    int line_pos = 0;
+    
+    while (buffer[buffer_pos] && patterns_added < AC_MAX_PATTERNS) {
+        char c = buffer[buffer_pos++];
+        
+        if (c == '\n' || c == '\r') {
+            if (line_pos > 0) {
+                line[line_pos] = '\0';
+                
+                // Ignora comentários e linhas vazias
+                if (line[0] != '#' && line[0] != '\0') {
+                    if (ac_add_pattern(automaton, line)) {
+                        patterns_added++;
+                    }
+                }
+                line_pos = 0;
+            }
+        } else if (line_pos < MAX_PATTERN_LENGTH - 1) {
+            line[line_pos++] = c;
+        }
+    }
+    
+    // Processa última linha se não termina com \n
+    if (line_pos > 0) {
+        line[line_pos] = '\0';
+        if (line[0] != '#' && line[0] != '\0') {
+            if (ac_add_pattern(automaton, line)) {
+                patterns_added++;
+            }
+        }
+    }
+    
     return patterns_added;
 }
 
-// Função para processar mensagens em lotes (uma por vez)
-static bool process_messages_batch(const char* input_filename, const char* output_filename,
-                                  ac_automaton_t* filter, int* total_processed, int* total_blocked) {
-    FILE* input_file = fopen(input_filename, "r");
-    if (!input_file) {
-        DEBUG_PRINTF("Erro: Nao foi possivel abrir arquivo de entrada: %s\n", input_filename);
+static int load_patterns_inmemory(const char* filename, ac_automaton_t* automaton) {
+    char buffer[MAX_FILE_BUFFER];
+    
+    // Lê arquivo completo de uma vez - SEM FILE* persistente
+    if (read_file_complete(filename, buffer, sizeof(buffer)) != 0) {
+        return 0;
+    }
+    
+    // Parse in-memory
+    return parse_patterns_from_buffer(buffer, automaton);
+}
+
+static bool process_messages_inmemory(const char* input_filename, const char* output_filename,
+                                     ac_automaton_t* filter, int* total_processed, int* total_blocked) {
+    char input_buffer[MAX_FILE_BUFFER];
+    char output_buffer[MAX_FILE_BUFFER];
+    
+    // 1. Lê input completo - SEM FILE* persistente
+    if (read_file_complete(input_filename, input_buffer, sizeof(input_buffer)) != 0) {
         return false;
     }
     
-    FILE* output_file = fopen(output_filename, "w");
-    if (!output_file) {
-        DEBUG_PRINTF("Erro: Nao foi possivel criar arquivo de saida: %s\n", output_filename);
-        fclose(input_file);
-        return false;
-    }
-    
-    // Escrever cabeçalho do arquivo de saída
-    fprintf(output_file, "=== RESULTADO DA FILTRAGEM ===\n\n");
-    
-    char line[MAX_LINE_LENGTH]; // Apenas um buffer por vez
+    // 2. Processa in-memory
+    char line[MAX_LINE_LENGTH];
     int message_count = 0;
     int blocked_count = 0;
+    int buffer_pos = 0;
+    int line_pos = 0;
+    int output_pos = 0;
     
-    // Processar linha por linha (sem array grande)
-    while (fgets(line, sizeof(line), input_file)) {
-        // Remove newline
-        line[strcspn(line, "\n")] = 0;
+    // Header
+    output_pos += snprintf(output_buffer + output_pos, MAX_FILE_BUFFER - output_pos,
+                          "=== RESULTADO FILTRO AHO-CORASICK ===\n\n");
+    
+    // Processa linha por linha in-memory
+    while (input_buffer[buffer_pos] && output_pos < MAX_FILE_BUFFER - 100) {
+        char c = input_buffer[buffer_pos++];
         
-        // Skip empty lines
-        if (strlen(line) == 0) continue;
-        
-        message_count++;
-        
-        // Testar se mensagem é proibida
-        bool is_blocked = is_message_forbidden(filter, line);
-        if (is_blocked) {
-            blocked_count++;
-            DEBUG_PRINTF("  [%d] BLOQUEADA: '%.30s%s'\n", 
-                        message_count, line, 
-                        strlen(line) > 30 ? "..." : "");
-        } else {
-            DEBUG_PRINTF("  [%d] Permitida: '%.30s%s'\n", 
-                        message_count, line, 
-                        strlen(line) > 30 ? "..." : "");
+        if (c == '\n' || c == '\r') {
+            if (line_pos > 0) {
+                line[line_pos] = '\0';
+                message_count++;
+                
+                bool is_blocked = is_message_forbidden(filter, line);
+                if (is_blocked) blocked_count++;
+                
+                output_pos += snprintf(output_buffer + output_pos, MAX_FILE_BUFFER - output_pos,
+                                     "[%03d] %s: %s\n", 
+                                     message_count,
+                                     is_blocked ? "**SPAM**" : "CLEAN",
+                                     line);
+                line_pos = 0;
+            }
+        } else if (line_pos < MAX_LINE_LENGTH - 1) {
+            line[line_pos++] = c;
         }
-        
-        // Escrever resultado diretamente no arquivo
-        fprintf(output_file, "[%03d] %s: %s\n", 
-                message_count,
-                is_blocked ? "BLOQUEADA" : "PERMITIDA",
-                line);
     }
     
-    fclose(input_file);
-    fclose(output_file);
+    // Stats finais
+    output_pos += snprintf(output_buffer + output_pos, MAX_FILE_BUFFER - output_pos,
+                          "\n=== ESTATÍSTICAS ===\nTotal: %d\nSpam: %d\nTaxa: %.1f%%\n",
+                          message_count, blocked_count,
+                          message_count > 0 ? (100.0 * blocked_count) / message_count : 0.0);
+    
+    // 3. Escreve output - SEM FILE* persistente
+    bool write_ok = (write_file_complete(output_filename, output_buffer) == 0);
     
     *total_processed = message_count;
     *total_blocked = blocked_count;
     
-    DEBUG_PRINTF("Processamento concluido: %d mensagens, %d bloqueadas\n", 
-                message_count, blocked_count);
-    return true;
-}
-
-static bool write_report(const char* filename, int patterns_loaded, int patterns_added, 
-                        int vertices, int messages_processed, int blocked_count) {
-    FILE* file = fopen(filename, "w");
-    if (!file) {
-        DEBUG_PRINTF("Erro: Nao foi possivel criar arquivo de relatorio: %s\n", filename);
-        return false;
-    }
-    
-    fprintf(file, "=== RELATORIO FILTRO DE CONTEUDO - AHO-CORASICK ===\n\n");
-    fprintf(file, "Configuracao do Filtro:\n");
-    fprintf(file, "  - Padroes carregados: %d\n", patterns_loaded);
-    fprintf(file, "  - Padroes adicionados: %d\n", patterns_added);
-    fprintf(file, "  - Vertices no automato: %d\n", vertices);
-    fprintf(file, "\nResultados do Processamento:\n");
-    fprintf(file, "  - Mensagens processadas: %d\n", messages_processed);
-    fprintf(file, "  - Mensagens bloqueadas: %d\n", blocked_count);
-    fprintf(file, "  - Taxa de bloqueio: %.1f%%\n", 
-            messages_processed > 0 ? (100.0 * blocked_count) / messages_processed : 0.0);
-    fprintf(file, "\nStatus: %s\n", 
-            patterns_added > 0 ? "Filtro ativo e operacional" : "Erro na configuracao");
-    
-    fclose(file);
-    DEBUG_PRINTF("Relatorio salvo em: %s\n", filename);
-    return true;
+    return write_ok;
 }
 
 int main() {
-    DEBUG_PRINTF("=== Iniciando Filtro de Conteudo - Aho-Corasick ===\n");
+    DEBUG_PRINTF("=== FILTRO AHO-CORASICK ULTRA-COMPACTO ===\n");
 
-    // Initialize automaton
     ac_automaton_t content_filter;
     ac_initialize_automaton(&content_filter);
 
-    // Load patterns directly into automaton (sem array grande)
-    DEBUG_PRINTF("Carregando padroes do arquivo...\n");
-    int patterns_added = load_patterns_directly(PATTERNS_FILE, &content_filter);
-    
+    // Carrega padrões in-memory
+    int patterns_added = load_patterns_inmemory(PATTERNS_FILE, &content_filter);
     if (patterns_added == 0) {
-        DEBUG_PRINTF("Erro: Nenhum padrao foi adicionado ao automato!\n");
+        DEBUG_PRINTF("ERRO: Nenhum padrão carregado!\n");
         return 1;
     }
 
-    // Build automaton
-    DEBUG_PRINTF("Construindo automato...\n");
     ac_build_automaton(&content_filter);
     
-    if (!validate_automaton_state(&content_filter)) {
-        DEBUG_PRINTF("Erro: Falha na validacao do automato!\n");
-        return 1;
-    }
-    
-    DEBUG_PRINTF("Automato construido com sucesso!\n");
+    DEBUG_PRINTF("Automaton: %d padrões, %d vértices\n", 
+           ac_get_pattern_count(&content_filter), 
+           ac_get_vertex_count(&content_filter));
 
-    // Process messages in batches (sem arrays grandes)
-    DEBUG_PRINTF("Processando mensagens em lotes...\n");
+    // Processa mensagens in-memory
     int total_processed = 0;
     int total_blocked = 0;
     
-    bool processing_ok = process_messages_batch(INPUT_FILE, OUTPUT_FILE, 
-                                               &content_filter, 
-                                               &total_processed, &total_blocked);
+    bool processing_ok = process_messages_inmemory(INPUT_FILE, OUTPUT_FILE, 
+                                                  &content_filter, 
+                                                  &total_processed, &total_blocked);
     
-    if (!processing_ok) {
-        DEBUG_PRINTF("Erro: Falha no processamento das mensagens!\n");
+    if (processing_ok) {
+        DEBUG_PRINTF("Processamento OK: %d mensagens, %d spam (%.1f%%)\n", 
+               total_processed, total_blocked,
+               total_processed > 0 ? (100.0 * total_blocked) / total_processed : 0.0);
+    } else {
+        DEBUG_PRINTF("ERRO no processamento!\n");
         return 1;
     }
-
-    // Write report
-    DEBUG_PRINTF("Gerando relatorio...\n");
-    bool report_ok = write_report(REPORT_FILE, patterns_added, patterns_added, 
-                                 ac_get_vertex_count(&content_filter), 
-                                 total_processed, total_blocked);
-
-    DEBUG_PRINTF("=== Processamento Concluido ===\n");
-    DEBUG_PRINTF("Relatorio: %s (%s)\n", REPORT_FILE, report_ok ? "OK" : "ERRO");
-    DEBUG_PRINTF("Resultado: %s (%s)\n", OUTPUT_FILE, processing_ok ? "OK" : "ERRO");
     
-    return (report_ok && processing_ok) ? 0 : 1;
+    return 0;
 }

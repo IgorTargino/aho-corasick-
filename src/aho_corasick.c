@@ -2,19 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static const int INVALID_VERTEX = -1;
 static const int ROOT_VERTEX = 0;
-
-static inline int char_to_index(char c) {
-    unsigned char uc = (unsigned char)c;
-    if (uc >= 'A' && uc <= 'Z') {
-        return uc - 'A';
-    }
-    if (uc >= 'a' && uc <= 'z') {
-        return uc - 'a';
-    }
-    return INVALID_VERTEX;
-}
 
 static void init_vertex(ac_vertex_t *vertex) {
     memset(vertex, 0, sizeof(ac_vertex_t));

@@ -6,12 +6,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-// --- Test Configuration ---
 #define MAX_TEST_MATCHES 100
 #define MAX_PATTERN_LENGTH 64
 #define MAX_PATTERN_BUFFER 50
 
-// --- Test Statistics ---
 typedef struct {
     int total_tests;
     int passed_tests;
@@ -23,7 +21,6 @@ typedef struct {
 
 static test_stats_t g_test_stats = {0};
 
-// --- Test Match Tracking ---
 typedef struct {
     char pattern[MAX_PATTERN_LENGTH];
     int position;
@@ -55,7 +52,6 @@ static int g_match_count = 0;
 
 #define TEST_SUMMARY() test_print_final_summary()
 
-// --- Logging Functions ---
 static void test_log_info(const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -109,7 +105,6 @@ static void test_log_search(const char* format, ...) {
     printf("\n");
 }
 
-// --- Test Utilities ---
 static void test_reset_matches(void) {
     g_match_count = 0;
     memset(g_test_matches, 0, sizeof(g_test_matches));
@@ -194,7 +189,7 @@ void ac_set_match_callback(const char* pattern, int position) {
     g_test_matches[g_match_count].position = position;
     g_test_matches[g_match_count].found = true;
     
-    test_log_search("Match found: '%s' at position %d", pattern, position);
+    // test_log_search("Match found: '%s' at position %d", pattern, position);
     g_match_count++;
 }
 
@@ -259,7 +254,6 @@ static void test_vertex_limits(void) {
     char pattern_buffer[MAX_PATTERN_BUFFER];
     int patterns_added = 0;
     
-    // Create diverse patterns to maximize vertex usage
     for (int i = 0; i < 20 && patterns_added < AC_MAX_PATTERNS; i++) {
         int ret = snprintf(pattern_buffer, sizeof(pattern_buffer), "%c%c%c%c%c", 
                           'a' + (i % 26), 'b' + ((i + 1) % 26), 
