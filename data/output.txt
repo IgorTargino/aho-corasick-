@@ -8,8 +8,10 @@
 [006] **SPAM**: nova tentativa de hack bloqueada
 [007] **SPAM**: promocao imperdivel nao e spam
 [008] **SPAM**: detectado malware no sistema
+[009] CLEAN: mensagem sem palavras proibidas
+[010] CLEAN: trojan encontrado no arquivo
 
 === ESTATÍSTICAS ===
-Total: 8
+Total: 10
 Spam: 5
-Taxa: 62.5%
+Taxa: 50.0%

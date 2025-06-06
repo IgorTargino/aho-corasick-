@@ -161,75 +161,39 @@ aho-corasick/
 
 ### **Comandos Disponíveis**
 
-```bash
-# Compilação
-make debug          # Versão debug (com logs detalhados)
-make release        # Versão otimizada (produção)
-make test           # Compila suite de testes
+```bash         # Remove arquivos compilados
+EXECUÇÃO
 
-# Execução
-make run            # Executa aplicação (modo debug)
-make run_release    # Executa aplicação (modo release)
-make run_test       # Executa todos os testes
+make							- Compila a aplicação principal com as flags padrões
+make debug						- Compila a aplicação principal com as flags para depuração
+make release					- Compila a aplicação principal com as flags para depuração desabilitada (SEM LOG)
+make test						- Compila a aplicação de testes
 
-# Limpeza
-make clean          # Remove arquivos compilados
-```
+make run						- Executa o programa principal
+make run_test					- Executa o programa de testes 
 
-### **Exemplo de Uso Básico**
+🔍 ANÁLISE DE MEMÓRIA (VALGRIND):
+make valgrind       			- Análise de vazamentos (app)
+make valgrind_memory 			- Análise detalhada de memória (app)
+make valgrind_profile 			- Análise de performance (app)
 
-```bash
-# Compilar e executar filtro de conteúdo
-make run
+📊 RELATÓRIOS:
+make show_massif_report			- Mostra relatório Massif mais recente
+make list_reports   			- Lista todos os relatórios disponíveis
+make generate_summary_report 	- Gera relatório resumo
+make time_stats     			- Estatísticas do sistema (app)
 
-# Saída esperada:
-=== Filtro de Conteudo - Aho-Corasick ===
+🔬 ANÁLISE COMPLETA:
+make analyze_all    			- Executa todas as análises
 
-Configurando filtro de conteudo...
-  ✅ Padrao adicionado: "spam"
-  ✅ Padrao adicionado: "virus"
-  ✅ Padrao adicionado: "hack"
-  ...
+🧹 LIMPEZA:
+make clean          			- Remove arquivos compilados
+make clean_all      			- Remove compilados + relatórios
+make clean_old_reports 			- Remove relatórios antigos (mantém 5)
 
-✅ Automato construido com sucesso!
+❓ AJUDA:
+make help           			- Mostra esta mensagem"
 
---- Estimativa de Uso de Memoria ---
-  Automato (ac_automaton_t): 7130 bytes
-  Total estimado: 7898 bytes (7.71 KB)
-  ✅ Dentro do orcamento de memoria
-
-=== Teste do Filtro de Conteudo ===
-[1] Analisando: "esta e uma mensagem normal e segura"
-    ✅ Resultado: Mensagem Permitida
-
-[2] Analisando: "alerta um virus foi detectado"
-    🚫 Resultado: MENSAGEM BLOQUEADA!
-```
-
-### **Executando Testes**
-
-```bash
-make run_test
-
-# Saída esperada:
-=== SUITE DE TESTES - AHO-CORASICK ===
-
-[TEST 1] Inicializacao do Automato
-  ✅ PASS: Root vertex deve ser criado
-  ✅ PASS: Nenhum padrao inicial
-
-[TEST 2] Adicao de Padroes
-  ✅ PASS: Deve adicionar padrao valido
-  ✅ PASS: Deve rejeitar padrao vazio
-
-...
-
-=== RESUMO DOS TESTES ===
-Total de testes: 14
-Testes passaram: 45
-Testes falharam: 0
-Taxa de sucesso: 100.0%
-✅ TODOS OS TESTES PASSARAM
 ```
 
 ## **📚 Uso da API**
