@@ -1,15 +1,34 @@
-=== RELATÓRIO FILTRO AHO-CORASICK ===
+========================================
+   RELATÓRIO DE EXECUÇÃO AHO-CORASICK
+========================================
 
-CONFIGURAÇÃO:
-  - Padrões carregados: 5
-  - Vértices criados: 29
-  - Limite máximo: 30 padrões, 30 vértices
+📊 CONFIGURAÇÃO DO AUTÔMATO:
+  • Padrões carregados: 8
+  • Vértices criados: 43
+  • Máximo de padrões: 20
+  • Máximo de vértices: 50
 
-RESULTADOS:
-  - Mensagens processadas: 10
-  - Spam detectado: 5
-  - Mensagens limpas: 5
-  - Taxa de spam: 50.0%
+⚙️  STATUS DA EXECUÇÃO:
+  • Processamento: ✅ SUCESSO
+  • Mensagens processadas: 19
+  • Mensagens bloqueadas: 13
+  • Taxa de spam: 68.42%
+  • Taxa de limpas: 31.58%
+  • Classificação: 📕 ALTO NÍVEL DE SPAM
 
-STATUS:
-  ✅ Filtro funcionando - Spam detectado!
+🔧 INFORMAÇÕES TÉCNICAS:
+  • Buffer de arquivo: 1024 bytes
+  • Tamanho máximo de linha: 128 chars
+  • Tamanho máximo de padrão: 32 chars
+  • Uso de memória: Estático (8KB limite)
+
+📁 ARQUIVOS PROCESSADOS:
+  • Padrões: data/patterns.txt
+  • Entrada: data/input.txt
+  • Saída: data/output.txt
+  • Relatório: data/report.txt
+
+========================================
+Relatório gerado pelo Filtro Aho-Corasick
+Versão: Ultra-Compacta v1.0
+========================================

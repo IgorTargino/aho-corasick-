@@ -2,6 +2,7 @@
 #define AHO_CORASICK_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "aho_queue.h"
 #include "aho_config.h"
 
@@ -10,20 +11,30 @@ static const int INVALID_VERTEX = -1;
 typedef struct ac_vertex ac_vertex_t;
 typedef struct ac_automaton ac_automaton_t;
 
+// Estrutura compacta para transições - apenas armazena transições existentes
+typedef struct {
+    uint8_t character;    // 1 byte - caractere ('a'-'z' = 0-25)
+    uint8_t next_vertex;  // 1 byte - índice do próximo vértice
+} ac_transition_t;
+
 struct ac_vertex {
-    int next[AC_K_ALPHABET_SIZE];
-    int go[AC_K_ALPHABET_SIZE];
-    int link;
-    bool output;
-    int pattern_indices[AC_MAX_PATTERNS_PER_VERTEX];
-    int num_patterns_at_vertex;
+    // Transições diretas (trie) - apenas as que existem
+    ac_transition_t transitions[AC_MAX_TRANSITIONS_PER_VERTEX];
+    uint8_t num_transitions;  // 1 byte - número de transições
+    
+    uint8_t link;             // 1 byte - link de falha  
+    uint8_t output : 1;       // 1 bit - flag de saída
+    uint8_t num_patterns : 7; // 7 bits - número de padrões (max 127)
+    
+    // Índices dos padrões que terminam neste vértice
+    uint8_t pattern_indices[AC_MAX_PATTERNS_PER_VERTEX];
 };
 
 struct ac_automaton {
     ac_vertex_t vertices[AC_MAX_VERTICES];
-    int current_vertex_count;
+    uint8_t current_vertex_count;
     const char* patterns[AC_MAX_PATTERNS];
-    int num_total_patterns;
+    uint8_t num_total_patterns;
     aho_queue_t queue;
 };
 
@@ -49,6 +60,12 @@ bool ac_add_pattern(ac_automaton_t *ac, const char* pattern);
  * @param ac Pointer to automaton structure
  */
 void ac_build_automaton(ac_automaton_t *ac);
+
+/**
+ * Search for patterns in text
+ * @param ac Pointer to automaton structure
+ * @param text Text to search in
+ */
 void ac_search(ac_automaton_t *ac, const char* text);
 
 extern void ac_set_match_callback(const char* pattern, int position);

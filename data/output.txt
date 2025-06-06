@@ -3,15 +3,24 @@
 [001] CLEAN: esta e uma mensagem normal e segura
 [002] **SPAM**: alerta um virus foi detectado no seu email
 [003] **SPAM**: cuidado com links de phishing
-[004] CLEAN: o sistema reportou um erro grave
+[004] **SPAM**: o sistema reportou um erro grave
 [005] CLEAN: texto completamente limpo e aprovado
 [006] **SPAM**: nova tentativa de hack bloqueada
 [007] **SPAM**: promocao imperdivel nao e spam
 [008] **SPAM**: detectado malware no sistema
 [009] CLEAN: mensagem sem palavras proibidas
-[010] CLEAN: trojan encontrado no arquivo
+[010] **SPAM**: trojan encontrado no arquivo
+[011] CLEAN: esta e uma mensagem normal e segura
+[012] **SPAM**: alerta um virus foi detectado no seu email
+[013] **SPAM**: cuidado com links de phishing
+[014] **SPAM**: o sistema reportou um erro grave
+[015] CLEAN: texto completamente limpo e aprovado
+[016] **SPAM**: nova tentativa de hack bloqueada
+[017] **SPAM**: promocao imperdivel nao e spam
+[018] **SPAM**: detectado malware no sistema
+[019] CLEAN: mensagem sem palavras proibidas
 
 === ESTATÍSTICAS ===
-Total: 10
-Spam: 5
-Taxa: 50.0%
+Total: 19
+Spam: 13
+Taxa: 68.4%

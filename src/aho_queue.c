@@ -7,7 +7,7 @@ void aho_queue_init(aho_queue_t *q) {
     q->count = 0;
 }
 
-bool aho_queue_enqueue(aho_queue_t *q, int node_idx) {
+bool aho_queue_enqueue(aho_queue_t *q, uint8_t node_idx) {
     if (q->count == AC_MAX_VERTICES) {
         fprintf(stderr, "[ERRO] Fila cheia! Não é possível enfileirar o nó %d.\n", node_idx);
         return false;
@@ -18,12 +18,12 @@ bool aho_queue_enqueue(aho_queue_t *q, int node_idx) {
     return true;
 }
 
-int aho_queue_dequeue(aho_queue_t *q) {
+uint8_t aho_queue_dequeue(aho_queue_t *q) {
     if (q->count == 0) {
         fprintf(stderr, "[ERRO] Fila vazia! Não é possível desenfileirar.\n");
-        return -1;
+        return INVALID_VERTEX_U8;  // 255 como valor inválido
     }
-    int node_idx = q->queue[q->head];
+    uint8_t node_idx = q->queue[q->head];
     q->head = (q->head + 1) % AC_MAX_VERTICES;
     q->count--;
     return node_idx;

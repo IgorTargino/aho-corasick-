@@ -125,12 +125,10 @@ static bool process_messages_inmemory(const char* input_filename, const char* ou
     char input_buffer[MAX_FILE_BUFFER];
     char output_buffer[MAX_FILE_BUFFER];
     
-    // 1. Lê input completo - SEM FILE* persistente
     if (read_file_complete(input_filename, input_buffer, sizeof(input_buffer)) != 0) {
         return false;
     }
     
-    // 2. Processa in-memory
     char line[MAX_LINE_LENGTH];
     int message_count = 0;
     int blocked_count = 0;
@@ -138,11 +136,9 @@ static bool process_messages_inmemory(const char* input_filename, const char* ou
     int line_pos = 0;
     int output_pos = 0;
     
-    // Header
     output_pos += snprintf(output_buffer + output_pos, MAX_FILE_BUFFER - output_pos,
                           "=== RESULTADO FILTRO AHO-CORASICK ===\n\n");
     
-    // Processa linha por linha in-memory
     while (input_buffer[buffer_pos] && output_pos < MAX_FILE_BUFFER - 100) {
         char c = input_buffer[buffer_pos++];
         
@@ -166,7 +162,6 @@ static bool process_messages_inmemory(const char* input_filename, const char* ou
         }
     }
     
-    // Stats finais
     output_pos += snprintf(output_buffer + output_pos, MAX_FILE_BUFFER - output_pos,
                           "\n=== ESTATÍSTICAS ===\nTotal: %d\nSpam: %d\nTaxa: %.1f%%\n",
                           message_count, blocked_count,
@@ -179,6 +174,131 @@ static bool process_messages_inmemory(const char* input_filename, const char* ou
     *total_blocked = blocked_count;
     
     return write_ok;
+}
+
+static int write_execution_report(const char* report_filename, 
+                                 const ac_automaton_t* automaton,
+                                 int patterns_loaded,
+                                 int total_processed, 
+                                 int total_blocked,
+                                 bool processing_success) {
+    char report_buffer[MAX_FILE_BUFFER];
+    int pos = 0;
+    
+    // Cabeçalho do relatório
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "========================================\n"
+                   "   RELATÓRIO DE EXECUÇÃO AHO-CORASICK\n"
+                   "========================================\n\n");
+    
+    // Informações do autômato
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "📊 CONFIGURAÇÃO DO AUTÔMATO:\n"
+                   "  • Padrões carregados: %d\n"
+                   "  • Vértices criados: %d\n"
+                   "  • Máximo de padrões: %d\n"
+                   "  • Máximo de vértices: %d\n\n",
+                   patterns_loaded,
+                   automaton->current_vertex_count,
+                   AC_MAX_PATTERNS,
+                   AC_MAX_VERTICES);
+    
+    // Status da execução
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "⚙️  STATUS DA EXECUÇÃO:\n"
+                   "  • Processamento: %s\n"
+                   "  • Mensagens processadas: %d\n"
+                   "  • Mensagens bloqueadas: %d\n",
+                   processing_success ? "✅ SUCESSO" : "❌ FALHOU",
+                   total_processed,
+                   total_blocked);
+    
+    // Estatísticas detalhadas
+    if (processing_success && total_processed > 0) {
+        double spam_rate = (100.0 * total_blocked) / total_processed;
+        double clean_rate = 100.0 - spam_rate;
+        
+        pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                       "  • Taxa de spam: %.2f%%\n"
+                       "  • Taxa de limpas: %.2f%%\n",
+                       spam_rate, clean_rate);
+        
+        // Classificação da eficácia
+        const char* effectiveness;
+        if (spam_rate == 0.0) {
+            effectiveness = "📗 CONTEÚDO COMPLETAMENTE LIMPO";
+        } else if (spam_rate < 10.0) {
+            effectiveness = "📘 BAIXO NÍVEL DE SPAM";
+        } else if (spam_rate < 30.0) {
+            effectiveness = "📙 NÍVEL MODERADO DE SPAM";
+        } else {
+            effectiveness = "📕 ALTO NÍVEL DE SPAM";
+        }
+        
+        pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                       "  • Classificação: %s\n", effectiveness);
+    }
+    
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos, "\n");
+    
+    // Informações técnicas
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "🔧 INFORMAÇÕES TÉCNICAS:\n"
+                   "  • Buffer de arquivo: %d bytes\n"
+                   "  • Tamanho máximo de linha: %d chars\n"
+                   "  • Tamanho máximo de padrão: %d chars\n"
+                   "  • Uso de memória: Estático (8KB limite)\n\n",
+                   MAX_FILE_BUFFER,
+                   MAX_LINE_LENGTH,
+                   MAX_PATTERN_LENGTH);
+    
+    // Detalhes dos arquivos processados
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "📁 ARQUIVOS PROCESSADOS:\n"
+                   "  • Padrões: %s\n"
+                   "  • Entrada: %s\n"
+                   "  • Saída: %s\n"
+                   "  • Relatório: %s\n\n",
+                   PATTERNS_FILE,
+                   INPUT_FILE,
+                   OUTPUT_FILE,
+                   report_filename);
+    
+    // Lista dos padrões carregados (se houver espaço)
+    if (patterns_loaded > 0 && pos < MAX_FILE_BUFFER - 200) {
+        pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                       "🔍 PADRÕES CARREGADOS (%d):\n", patterns_loaded);
+        
+        for (int i = 0; i < patterns_loaded && i < automaton->num_total_patterns && 
+             pos < MAX_FILE_BUFFER - 100; i++) {
+            pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                           "  %2d. \"%s\"\n", i + 1, automaton->patterns[i]);
+        }
+        
+        if (patterns_loaded > automaton->num_total_patterns) {
+            pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                           "  ... (lista truncada)\n");
+        }
+        pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos, "\n");
+    }
+    
+    // Rodapé com timestamp simulado
+    pos += snprintf(report_buffer + pos, MAX_FILE_BUFFER - pos,
+                   "========================================\n"
+                   "Relatório gerado pelo Filtro Aho-Corasick\n"
+                   "Versão: Ultra-Compacta v1.0\n"
+                   "========================================\n");
+    
+    // Escrever o relatório
+    DEBUG_PRINTF("📝 Gerando relatório: %s\n", report_filename);
+    
+    if (write_file_complete(report_filename, report_buffer) == 0) {
+        DEBUG_PRINTF("✅ Relatório gerado com sucesso (%d bytes)\n", pos);
+        return 0;
+    } else {
+        DEBUG_PRINTF("❌ Erro ao gerar relatório\n");
+        return 1;
+    }
 }
 
 int main() {
@@ -208,6 +328,9 @@ int main() {
                                                   &content_filter, 
                                                   &total_processed, &total_blocked);
     
+
+	write_execution_report(REPORT_FILE, &content_filter, patterns_added, total_processed, total_blocked,  processing_ok);
+	
     if (processing_ok) {
         DEBUG_PRINTF("Processamento OK: %d mensagens, %d spam (%.1f%%)\n", 
                total_processed, total_blocked,
