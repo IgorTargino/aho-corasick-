@@ -2,26 +2,12 @@
 #define AHO_CORASICK_H
 
 #include <stdbool.h>
+#include "aho_queue.h"
+#include "aho_config.h"
 
-// --- Configuration Constants ---
-#define AC_K_ALPHABET_SIZE          26      // English alphabet (A-Z, a-z)
-#define AC_MAX_VERTICES             30   // Maximum number of automaton vertices
-#define AC_MAX_PATTERNS             30    // Maximum number of patterns
-#define AC_MAX_PATTERNS_PER_VERTEX  2      // Maximum patterns ending at one vertex
-#define AC_QUEUE_SIZE               30    // BFS queue size for automaton construction
 
-// --- Forward Declarations ---
 typedef struct ac_vertex ac_vertex_t;
-typedef struct aho_queue aho_queue_t;
 typedef struct ac_automaton ac_automaton_t;
-
-// --- Queue Structure for BFS ---
-struct aho_queue {
-    int data[AC_QUEUE_SIZE];
-    int front;
-    int rear;
-    int size;
-};
 
 // --- Automaton Vertex Structure ---
 struct ac_vertex {
@@ -112,13 +98,5 @@ static inline int ac_get_pattern_count(const ac_automaton_t *ac) {
 static inline bool ac_is_built(const ac_automaton_t *ac) {
     return ac && ac->current_vertex_count > 0 && ac->num_total_patterns > 0;
 }
-
-// --- Debug Configuration ---
-// Define AC_DEBUG_PRINTS before including this header to enable debug output
-#ifdef AC_DEBUG_PRINTS
-    #define AC_DEBUG_ENABLED 1
-#else
-    #define AC_DEBUG_ENABLED 0
-#endif
 
 #endif // AHO_CORASICK_H

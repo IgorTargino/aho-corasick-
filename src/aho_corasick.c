@@ -2,20 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-// --- Debug Configuration ---
-#ifdef AC_DEBUG_PRINTS
-#define DEBUG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DEBUG_PRINTF(...) ((void)0)
-#endif
-
-// --- Constants ---
 static const int INVALID_VERTEX = -1;
 static const int ROOT_VERTEX = 0;
 
-// --- Character Mapping ---
 static inline int char_to_index(char c) {
-    // Branchless case conversion and validation
     unsigned char uc = (unsigned char)c;
     if (uc >= 'A' && uc <= 'Z') {
         return uc - 'A';
@@ -26,12 +16,9 @@ static inline int char_to_index(char c) {
     return INVALID_VERTEX;
 }
 
-// --- Vertex Management ---
 static void init_vertex(ac_vertex_t *vertex) {
-    // Use memset for bulk initialization, then set specific values
     memset(vertex, 0, sizeof(ac_vertex_t));
     
-    // Set array values that need non-zero initialization
     for (int i = 0; i < AC_K_ALPHABET_SIZE; ++i) {
         vertex->next[i] = INVALID_VERTEX;
         vertex->go[i] = INVALID_VERTEX;
@@ -58,7 +45,6 @@ static inline bool is_valid_vertex(const ac_automaton_t *ac, int vertex_idx) {
     return vertex_idx >= 0 && vertex_idx < ac->current_vertex_count;
 }
 
-// --- Pattern Management ---
 static bool add_pattern_to_vertex(ac_vertex_t *vertex, int pattern_idx) {
     if (vertex->num_patterns_at_vertex >= AC_MAX_PATTERNS_PER_VERTEX) {
         DEBUG_PRINTF("Warning: Maximum patterns per vertex (%d) reached\n", AC_MAX_PATTERNS_PER_VERTEX);
@@ -80,7 +66,6 @@ static int calculate_pattern_depth(const char* pattern) {
     return depth;
 }
 
-// --- Trie Construction ---
 static int build_trie_path(ac_automaton_t *ac, const char* pattern, int pattern_idx) {
     int current = ROOT_VERTEX;
     
@@ -106,7 +91,6 @@ static int build_trie_path(ac_automaton_t *ac, const char* pattern, int pattern_
     return current;
 }
 
-// --- Automaton Construction ---
 static void initialize_root_transitions(ac_automaton_t *ac) {
     ac_vertex_t *root = &ac->vertices[ROOT_VERTEX];
     
@@ -130,21 +114,17 @@ static void compute_failure_links(ac_automaton_t *ac) {
             int child = current_vertex->next[c];
             
             if (child != INVALID_VERTEX) {
-                // Direct transition exists
                 current_vertex->go[c] = child;
                 
-                // Compute failure link for child
                 int failure_state = current_vertex->link;
                 ac->vertices[child].link = ac->vertices[failure_state].go[c];
                 
-                // Inherit output property if failure link has output
                 if (ac->vertices[ac->vertices[child].link].output) {
                     ac->vertices[child].output = true;
                 }
                 
                 aho_queue_enqueue(&ac->queue, child);
             } else {
-                // No direct transition, follow failure link
                 int failure_state = current_vertex->link;
                 current_vertex->go[c] = ac->vertices[failure_state].go[c];
             }
@@ -152,7 +132,6 @@ static void compute_failure_links(ac_automaton_t *ac) {
     }
 }
 
-// --- Search Implementation ---
 static void report_matches_at_state(const ac_automaton_t *ac, int state, int text_position) {
     while (state != INVALID_VERTEX) {
         const ac_vertex_t *vertex = &ac->vertices[state];
@@ -171,7 +150,6 @@ static void report_matches_at_state(const ac_automaton_t *ac, int state, int tex
     }
 }
 
-// --- Public API Implementation ---
 void ac_initialize_automaton(ac_automaton_t *ac) {
     if (!ac) return;
     
@@ -179,7 +157,6 @@ void ac_initialize_automaton(ac_automaton_t *ac) {
     ac->num_total_patterns = 0;
     aho_queue_init(&ac->queue);
     
-    // Initialize root vertex
     if (allocate_vertex(ac) != ROOT_VERTEX) {
         DEBUG_PRINTF("Error: Failed to allocate root vertex\n");
         return;
@@ -198,7 +175,6 @@ bool ac_add_pattern(ac_automaton_t *ac, const char* pattern) {
         return false;
     }
     
-    // Check if we have enough vertices for this pattern
     int required_depth = calculate_pattern_depth(pattern);
     if (ac->current_vertex_count + required_depth > AC_MAX_VERTICES) {
         DEBUG_PRINTF("Error: Not enough vertices for pattern. Required: %d, Available: %d\n",
@@ -249,7 +225,6 @@ void ac_search(ac_automaton_t *ac, const char* text) {
             continue;
         }
         
-        // Transition using go function
         int next_state = ac->vertices[current_state].go[char_idx];
         if (next_state == INVALID_VERTEX) {
             DEBUG_PRINTF("Critical error: Uncomputed go transition from state %d, char %d\n", 

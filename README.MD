@@ -19,9 +19,7 @@ Uma implementação otimizada do algoritmo **Aho-Corasick** para detecção de m
 - [Casos de Teste](#casos-de-teste)
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Exemplos de Uso](#exemplos-de-uso)
-- [Performance](#performance)
 - [Limitações](#limitações)
-- [Contribuição](#contribuição)
 - [Licença](#licença)
 
 ## **🧠 Sobre o Algoritmo**

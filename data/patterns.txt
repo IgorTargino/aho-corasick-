@@ -1,0 +1,8 @@
+spam
+virus
+hack
+malware
+phishing
+erro
+trojan
+worm

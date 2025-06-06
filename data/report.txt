@@ -1,0 +1,13 @@
+=== RELATORIO FILTRO DE CONTEUDO - AHO-CORASICK ===
+
+Configuracao do Filtro:
+  - Padroes carregados: 5
+  - Padroes adicionados: 5
+  - Vertices no automato: 29
+
+Resultados do Processamento:
+  - Mensagens processadas: 10
+  - Mensagens bloqueadas: 5
+  - Taxa de bloqueio: 50.0%
+
+Status: Filtro ativo e operacional

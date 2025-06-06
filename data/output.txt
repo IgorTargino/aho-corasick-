@@ -1,0 +1,12 @@
+=== RESULTADO DA FILTRAGEM ===
+
+[001] PERMITIDA: esta e uma mensagem normal e segura
+[002] BLOQUEADA: alerta um virus foi detectado no seu email
+[003] BLOQUEADA: cuidado com links de phishing
+[004] PERMITIDA: o sistema reportou um erro grave
+[005] PERMITIDA: texto completamente limpo e aprovado
+[006] BLOQUEADA: nova tentativa de hack bloqueada
+[007] BLOQUEADA: promocao imperdivel nao e spam
+[008] BLOQUEADA: detectado malware no sistema
+[009] PERMITIDA: mensagem sem palavras proibidas
+[010] PERMITIDA: trojan encontrado no arquivo
