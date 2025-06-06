@@ -459,16 +459,6 @@ bool is_message_appropriate(const char* message) {
 
 ## **⚡ Performance**
 
-### **Benchmarks (Sistema de Teste)**
-
-| Métrica | Valor | Observações |
-|---------|-------|-------------|
-| **Inicialização** | < 1ms | Setup inicial do autômato |
-| **Adição de padrão** | < 0.1ms | Por padrão adicionado |
-| **Construção** | < 5ms | Para 30 padrões |
-| **Busca** | ~1μs/char | Dependente do número de matches |
-| **Memória** | 7130 bytes | Estrutura principal |
-
 ### **Complexidade Real**
 
 ```c
@@ -477,13 +467,6 @@ Pré-processamento: O(N * M)
 Busca em texto T: O(|T| + número_de_matches)
 Memória: O(N * M) limitada por AC_MAX_VERTICES
 ```
-
-### **Otimizações Implementadas**
-
-- **Mapeamento inline** de caracteres (sem lookup tables)
-- **Inicialização bulk** com `memset` + ajustes específicos
-- **Verificações de limite** em tempo de compilação
-- **Debug condicional** removível em produção
 
 ## **⚠️ Limitações**
 
@@ -501,7 +484,7 @@ Memória: O(N * M) limitada por AC_MAX_VERTICES
 | **Máximo de vértices** | 30 | ✅ `AC_MAX_VERTICES` |
 | **Máximo de padrões** | 30 | ✅ `AC_MAX_PATTERNS` |
 | **Padrões por vértice** | 2 | ✅ `AC_MAX_PATTERNS_PER_VERTEX` |
-| **Tamanho do alfabeto** | 26 | ❌ Hardcoded |
+| **Tamanho do alfabeto** | 26 | ✅ `AC_K_ALPHABET_SIZE` |
 
 ### **Quando NÃO Usar**
 
@@ -518,9 +501,8 @@ Memória: O(N * M) limitada por AC_MAX_VERTICES
 // No arquivo aho_corasick.h, ajuste conforme necessário:
 
 // Para mais padrões (consome mais memória):
-#define AC_MAX_PATTERNS 50
-
 // Para padrões mais longos (consome mais vértices):
+#define AC_MAX_PATTERNS 50
 #define AC_MAX_VERTICES 100
 
 // Para múltiplos padrões por final de palavra:
@@ -548,43 +530,8 @@ make release
 # Sem -DAC_DEBUG_PRINTS (remove logs)
 ```
 
-## **🤝 Contribuição**
-
-### **Como Contribuir**
-
-1. **Fork** o repositório
-2. Crie uma **branch** para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. **Commit** suas mudanças (`git commit -am 'Adiciona nova funcionalidade'`)
-4. **Push** para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um **Pull Request**
-
-### **Guidelines**
-
-- **Testes**: Adicione testes para novas funcionalidades
-- **Documentação**: Atualize documentação conforme necessário
-- **Estilo**: Siga o estilo de código existente
-- **Memória**: Respeite os limites de 8KB
-
-### **Áreas de Melhoria**
-
-- [ ] Suporte a Unicode/UTF-8
-- [ ] Otimizações adicionais de performance
-- [ ] Métricas de performance em tempo real
-- [ ] Suporte a padrões com wildcards
-- [ ] API para salvar/carregar autômato
-
 ## **📄 Licença**
 
 Este projeto está licenciado sob a **MIT License** - veja o arquivo [LICENSE](LICENSE) para detalhes.
 
 ---
-
-## **📞 Suporte**
-
-- **Issues**: [GitHub Issues](../../issues)
-- **Documentação**: Este README.md
-- **Exemplos**: Veja `src/main.c` e `src/test_aho_corasick.c`
-
----
-
-**Desenvolvido para sistemas embarcados com ❤️ e eficiência de memória em mente.**
