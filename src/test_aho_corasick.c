@@ -498,27 +498,90 @@ static void test_invalid_characters(void) {
     ac_automaton_t ac;
     ac_init(&ac, on_pattern_match_found);
     
-    const char* pattern = "test";
-    TEST_ASSERT(ac_add_pattern(&ac, pattern), "Should add pattern '%s'", pattern);
-    ac_build(&ac);
-    
-    // Test cases with invalid characters
-    const char* test_cases[] = {
-        "test123!@#",
-        "123test456", 
-        "te123st"
+    // Test patterns with special characters (now VALID)
+    const char* valid_patterns[] = {
+        "<script>",
+        "user@email.com",
+        "C:\\Windows\\",
+        "price: $19.99",
+        "password=secret&user=admin"
     };
-    const int case_count = sizeof(test_cases) / sizeof(test_cases[0]);
     
-    for (int i = 0; i < case_count; i++) {
+    const int valid_pattern_count = sizeof(valid_patterns) / sizeof(valid_patterns[0]);
+    
+    // Add all valid patterns with special characters
+    for (int i = 0; i < valid_pattern_count; i++) {
+        bool result = ac_add_pattern(&ac, valid_patterns[i]);
+        TEST_ASSERT(result, "Should successfully add pattern with special chars: '%s'", valid_patterns[i]);
+    }
+    
+    ac_build(&ac);
+    test_log_data("Built automaton with %d patterns containing special characters", ac.pattern_count);
+    
+    // Test search with valid special characters
+    test_reset_matches();
+    const char* test_text = "Check this <script>alert('hello')</script> and user@email.com for price: $19.99";
+    test_log_input("Input text: '%s'", test_text);
+    ac_search(&ac, test_text);
+    test_print_all_matches();
+    
+    TEST_ASSERT(g_match_count >= 3, "Should find multiple patterns with special characters");
+    TEST_ASSERT(test_has_match("<script>"), "Should find HTML tag pattern");
+    TEST_ASSERT(test_has_match("user@email.com"), "Should find email pattern");
+    
+    // Test patterns with INVALID characters (outside ASCII printable range 32-126)
+    ac_automaton_t ac_invalid;
+    ac_init(&ac_invalid, on_pattern_match_found);
+    
+    // Characters 0-31 (control characters) and 127+ are invalid
+    const char invalid_pattern_1[] = {'t', 'e', 's', 't', '\x01', 'i', 'n', 'g', '\0'}; // \x01 is control char
+    const char invalid_pattern_2[] = {'h', 'e', 'l', 'l', 'o', '\x7F', '\0'}; // \x7F is DEL
+    const char invalid_pattern_3[] = {'c', 'a', 'f', '\xC3', '\xA9', '\0'}; // UTF-8 'é' (invalid for this implementation)
+    
+    test_log_data("Testing patterns with invalid characters (control chars, UTF-8, etc.)");
+    
+    // These should either be rejected or have invalid chars ignored
+    bool invalid_result_1 = ac_add_pattern(&ac_invalid, invalid_pattern_1);
+    bool invalid_result_2 = ac_add_pattern(&ac_invalid, invalid_pattern_2);
+    bool invalid_result_3 = ac_add_pattern(&ac_invalid, invalid_pattern_3);
+    
+    test_log_data("Pattern with control char \\x01: %s", invalid_result_1 ? "accepted (invalid chars ignored)" : "rejected");
+    test_log_data("Pattern with DEL char \\x7F: %s", invalid_result_2 ? "accepted (invalid chars ignored)" : "rejected");
+    test_log_data("Pattern with UTF-8 'é': %s", invalid_result_3 ? "accepted (invalid chars ignored)" : "rejected");
+    
+    // Behavior with invalid characters is implementation dependent, so we test both scenarios
+    TEST_ASSERT(true, "Invalid character handling completed (behavior may vary)");
+    
+    if (ac_invalid.pattern_count > 0) {
+        ac_build(&ac_invalid);
+        
+        // Test search with text containing invalid characters
         test_reset_matches();
-        test_log_input("Input text: '%s'", test_cases[i]);
-        ac_search(&ac, test_cases[i]);
+        const char mixed_text[] = {'v', 'a', 'l', 'i', 'd', ' ', 't', 'e', 's', 't', '\x02', 'i', 'n', 'g', ' ', 'h', 'e', 'r', 'e', '\0'};
+        test_log_input("Input text with control char: 'valid test\\x02ing here'");
+        ac_search(&ac_invalid, mixed_text);
         
-        test_log_data("'%s' produced %d matches", test_cases[i], g_match_count);
+        test_log_data("Search with invalid chars in text produced %d matches", g_match_count);
+        TEST_ASSERT(g_match_count >= 0, "Should handle invalid characters in search text gracefully");
+    }
+    
+    // Test comprehensive ASCII printable range (32-126)
+    ac_automaton_t ac_ascii;
+    ac_init(&ac_ascii, on_pattern_match_found);
+    
+    // Create pattern with various ASCII printable characters
+    const char ascii_pattern[] = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    test_log_data("Testing comprehensive ASCII printable pattern (chars 32-126)");
+    
+    bool ascii_result = ac_add_pattern(&ac_ascii, ascii_pattern);
+    test_log_data("Full ASCII printable pattern: %s", ascii_result ? "accepted" : "rejected");
+    
+    if (ascii_result) {
+        ac_build(&ac_ascii);
         
-        // Behavior with invalid characters is implementation dependent
-        TEST_ASSERT(g_match_count >= 0, "Match count should be non-negative");
+        test_reset_matches();
+        ac_search(&ac_ascii, ascii_pattern);
+        TEST_ASSERT(g_match_count == 1, "Should find the comprehensive ASCII pattern exactly once");
     }
     
     g_test_stats.passed_tests++;

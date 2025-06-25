@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define AC_MAX_VERTICES 80
-#define AC_MAX_PATTERNS 80
+#define AC_MAX_PATTERNS 40
 #define AC_MAX_PATTERNS_PER_VERTEX 2
 #define AC_MAX_TRANSITIONS_PER_VERTEX 26
 #define INVALID_VERTEX_U8 255
