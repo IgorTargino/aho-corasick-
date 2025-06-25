@@ -52,6 +52,10 @@ static int g_match_count = 0;
 
 #define TEST_SUMMARY() test_print_final_summary()
 
+static inline bool ac_is_built(const ac_automaton_t *ac) {
+    return ac && ac->vertex_count > 0 && ac->pattern_count > 0;
+}
+
 static void test_log_info(const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -121,18 +125,6 @@ static bool test_has_match(const char* expected_pattern) {
     return false;
 }
 
-static bool test_has_match_at_position(const char* expected_pattern, int expected_position) {
-    if (!expected_pattern) return false;
-    
-    for (int i = 0; i < g_match_count; i++) {
-        if (strcmp(g_test_matches[i].pattern, expected_pattern) == 0 && 
-            g_test_matches[i].position == expected_position) {
-            return true;
-        }
-    }
-    return false;
-}
-
 static int test_count_matches(const char* expected_pattern) {
     if (!expected_pattern) return 0;
     
@@ -175,7 +167,7 @@ static void test_print_final_summary(void) {
 }
 
 // --- Mock Callback Implementation ---
-void ac_set_match_callback(const char* pattern, int position) {
+void on_pattern_match_found(const char* pattern, int position) {
     if (g_match_count >= MAX_TEST_MATCHES || !pattern) {
         return;
     }
@@ -189,7 +181,7 @@ void ac_set_match_callback(const char* pattern, int position) {
     g_test_matches[g_match_count].position = position;
     g_test_matches[g_match_count].found = true;
     
-    // test_log_search("Match found: '%s' at position %d", pattern, position);
+    test_log_search("Match found: '%s' at position %d", pattern, position);
     g_match_count++;
 }
 
@@ -198,14 +190,13 @@ static void test_automaton_initialization(void) {
     TEST_START("Automaton Initialization");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
-    TEST_ASSERT(ac_get_vertex_count(&ac) == 1, "Root vertex should be created");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == 0, "No initial patterns should exist");
+    TEST_ASSERT(ac.vertex_count == 1, "Root vertex should be created");
+    TEST_ASSERT(ac.pattern_count == 0, "No initial patterns should exist");
     TEST_ASSERT(!ac_is_built(&ac), "Automaton should not be built initially");
     
-    // Test NULL pointer handling - should not crash
-    ac_initialize_automaton(NULL);
+    ac_init(NULL, NULL);
     TEST_ASSERT(true, "Should handle NULL pointer gracefully");
     
     g_test_stats.passed_tests++;
@@ -215,22 +206,22 @@ static void test_pattern_addition(void) {
     TEST_START("Pattern Addition");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     // Test valid pattern addition
     bool result = ac_add_pattern(&ac, "test");
     TEST_ASSERT(result, "Should successfully add valid pattern 'test'");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == 1, "Pattern counter should be 1 after first addition");
+    TEST_ASSERT(ac.pattern_count == 1, "Pattern counter should be 1 after first addition");
     
     // Test edge cases
     TEST_ASSERT(!ac_add_pattern(&ac, ""), "Should reject empty pattern");
     TEST_ASSERT(!ac_add_pattern(&ac, NULL), "Should reject NULL pattern");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == 1, "Counter should remain unchanged after rejections");
+    TEST_ASSERT(ac.pattern_count == 1, "Counter should remain unchanged after rejections");
     
     // Test multiple valid patterns
     TEST_ASSERT(ac_add_pattern(&ac, "hello"), "Should accept second valid pattern 'hello'");
     TEST_ASSERT(ac_add_pattern(&ac, "world"), "Should accept third valid pattern 'world'");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == 3, "Should have exactly 3 valid patterns");
+    TEST_ASSERT(ac.pattern_count == 3, "Should have exactly 3 valid patterns");
     
     // Test case sensitivity
     TEST_ASSERT(ac_add_pattern(&ac, "Test"), "Should accept pattern with uppercase letters");
@@ -249,27 +240,27 @@ static void test_vertex_limits(void) {
     TEST_START("Vertex Limits");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     char pattern_buffer[MAX_PATTERN_BUFFER];
     int patterns_added = 0;
     
-    for (int i = 0; i < 20 && patterns_added < AC_MAX_PATTERNS; i++) {
+    for (int i = 0; i < 26 && patterns_added < AC_MAX_PATTERNS; i++) {
         int ret = snprintf(pattern_buffer, sizeof(pattern_buffer), "%c%c%c%c%c", 
                           'a' + (i % 26), 'b' + ((i + 1) % 26), 
                           'c' + ((i + 2) % 26), 'd' + ((i + 3) % 26), 
                           'e' + ((i + 4) % 26));
         
-        if (ret >= sizeof(pattern_buffer)) continue;
+        if ((size_t)ret >= sizeof(pattern_buffer)) continue;
         
         if (ac_add_pattern(&ac, pattern_buffer)) {
             patterns_added++;
         }
     }
     
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
-    int vertex_count = ac_get_vertex_count(&ac);
+    int vertex_count = ac.vertex_count;
     test_log_data("Created %d vertices with %d patterns", vertex_count, patterns_added);
     
     TEST_ASSERT(vertex_count <= AC_MAX_VERTICES, 
@@ -284,7 +275,7 @@ static void test_automaton_construction(void) {
     TEST_START("Automaton Construction");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     // Add overlapping patterns to test failure link construction
     const char* patterns[] = {"he", "she", "his", "hers"};
@@ -295,22 +286,22 @@ static void test_automaton_construction(void) {
         TEST_ASSERT(result, "Should successfully add pattern '%s'", patterns[i]);
     }
     
-    int patterns_before = ac_get_pattern_count(&ac);
-    int vertices_before = ac_get_vertex_count(&ac);
+    int patterns_before = ac.pattern_count;
+    int vertices_before = ac.vertex_count;
     
     // Build the automaton
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     TEST_ASSERT(ac_is_built(&ac), "Automaton should be marked as built");
-    TEST_ASSERT(ac_get_vertex_count(&ac) >= vertices_before, 
+    TEST_ASSERT(ac.vertex_count >= vertices_before, 
                 "Vertex count should not decrease after building");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == patterns_before, 
+    TEST_ASSERT(ac.pattern_count == patterns_before, 
                 "Pattern count should be preserved during building");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == pattern_count, 
+    TEST_ASSERT(ac.pattern_count == pattern_count, 
                 "Should maintain all %d patterns", pattern_count);
     
     test_log_data("Built automaton: %d vertices, %d patterns", 
-                  ac_get_vertex_count(&ac), ac_get_pattern_count(&ac));
+                  ac.vertex_count, ac.pattern_count);
     
     g_test_stats.passed_tests++;
 }
@@ -319,13 +310,13 @@ static void test_empty_automaton_construction(void) {
     TEST_START("Empty Automaton Construction");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     // Attempt to build automaton without any patterns
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
-    TEST_ASSERT(ac_get_vertex_count(&ac) == 1, "Should have only the root vertex");
-    TEST_ASSERT(ac_get_pattern_count(&ac) == 0, "Should have no patterns");
+    TEST_ASSERT(ac.vertex_count == 1, "Should have only the root vertex");
+    TEST_ASSERT(ac.pattern_count == 0, "Should have no patterns");
     
     // Note: is_built() behavior with empty automaton is implementation dependent
     bool is_built = ac_is_built(&ac);
@@ -338,11 +329,11 @@ static void test_single_pattern_search(void) {
     TEST_START("Single Pattern Search");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* pattern = "test";
     TEST_ASSERT(ac_add_pattern(&ac, pattern), "Should add pattern '%s'", pattern);
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     // Test exact match
     test_reset_matches();
@@ -389,7 +380,7 @@ static void test_multiple_patterns_search(void) {
     TEST_START("Multiple Patterns Search");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* patterns[] = {"he", "she", "his", "hers"};
     const int pattern_count = sizeof(patterns) / sizeof(patterns[0]);
@@ -397,7 +388,7 @@ static void test_multiple_patterns_search(void) {
     for (int i = 0; i < pattern_count; i++) {
         TEST_ASSERT(ac_add_pattern(&ac, patterns[i]), "Should add pattern '%s'", patterns[i]);
     }
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     // Test overlapping matches
     test_reset_matches();
@@ -446,11 +437,11 @@ static void test_case_sensitivity(void) {
     TEST_START("Case Sensitivity");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* lowercase_pattern = "test";
     TEST_ASSERT(ac_add_pattern(&ac, lowercase_pattern), "Should add lowercase pattern");
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     const char* test_cases[] = {"TEST", "Test", "tEsT", "TeSt"};
     const int case_count = sizeof(test_cases) / sizeof(test_cases[0]);
@@ -480,11 +471,11 @@ static void test_repeated_patterns(void) {
     TEST_START("Repeated Patterns in Text");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* pattern = "ab";
     TEST_ASSERT(ac_add_pattern(&ac, pattern), "Should add pattern '%s'", pattern);
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     test_reset_matches();
     const char* repeated_text = "ababab";
@@ -505,11 +496,11 @@ static void test_invalid_characters(void) {
     TEST_START("Invalid Characters Handling");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* pattern = "test";
     TEST_ASSERT(ac_add_pattern(&ac, pattern), "Should add pattern '%s'", pattern);
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     // Test cases with invalid characters
     const char* test_cases[] = {
@@ -537,12 +528,12 @@ static void test_edge_cases(void) {
     TEST_START("Edge Cases");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     // Test single character pattern
     const char* single_char = "a";
     TEST_ASSERT(ac_add_pattern(&ac, single_char), "Should add single character pattern");
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     test_reset_matches();
     const char* repeated_chars = "aaa";
@@ -574,14 +565,14 @@ static void test_boundary_conditions(void) {
     TEST_START("Boundary Conditions");
     
     ac_automaton_t ac;
-    ac_initialize_automaton(&ac);
+    ac_init(&ac, on_pattern_match_found);
     
     const char* start_pattern = "start";
     const char* end_pattern = "end";
     
     TEST_ASSERT(ac_add_pattern(&ac, start_pattern), "Should add pattern '%s'", start_pattern);
     TEST_ASSERT(ac_add_pattern(&ac, end_pattern), "Should add pattern '%s'", end_pattern);
-    ac_build_automaton(&ac);
+    ac_build(&ac);
     
     test_reset_matches();
     const char* boundary_text = "start of text ends here with end";
@@ -594,11 +585,11 @@ static void test_boundary_conditions(void) {
     
     // Test single character text
     ac_automaton_t ac2;
-    ac_initialize_automaton(&ac2);
+    ac_init(&ac2, on_pattern_match_found);
     
     const char* single_pattern = "x";
     TEST_ASSERT(ac_add_pattern(&ac2, single_pattern), "Should add pattern '%s'", single_pattern);
-    ac_build_automaton(&ac2);
+    ac_build(&ac2);
     
     test_reset_matches();
     test_log_input("Input text: '%s'", single_pattern);
@@ -636,7 +627,6 @@ static void print_test_configuration(void) {
     printf("  AC_MAX_VERTICES: %d\n", AC_MAX_VERTICES);
     printf("  AC_MAX_PATTERNS: %d\n", AC_MAX_PATTERNS);
     printf("  AC_MAX_PATTERNS_PER_VERTEX: %d\n", AC_MAX_PATTERNS_PER_VERTEX);
-    printf("  AC_K_ALPHABET_SIZE: %d\n", AC_K_ALPHABET_SIZE);
     printf("  MAX_TEST_MATCHES: %d\n", MAX_TEST_MATCHES);
     printf("  MAX_PATTERN_LENGTH: %d\n", MAX_PATTERN_LENGTH);
 }
