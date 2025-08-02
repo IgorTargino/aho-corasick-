@@ -24,6 +24,24 @@ APP_EXECUTAVEL = $(BUILD_DIR)/$(APP_EXECUTAVEL_NAME)
 APP_SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c
 APP_OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(APP_SOURCES:.c=.o)))
 
+# --- Configurações da Aplicação de Medição ---
+PERF_APP_EXECUTAVEL_NAME = aho_perf_app
+PERF_APP_EXECUTAVEL = $(BUILD_DIR)/$(PERF_APP_EXECUTAVEL_NAME)
+PERF_APP_SOURCES = $(SRC_DIR)/aho_app.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c $(SRC_DIR)/aho_app_config.c
+PERF_APP_OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(PERF_APP_SOURCES:.c=.o)))
+
+# --- Configurações do Multi-Teste ---
+MULTI_TEST_EXECUTAVEL_NAME = aho_multi_test
+MULTI_TEST_EXECUTAVEL = $(BUILD_DIR)/$(MULTI_TEST_EXECUTAVEL_NAME)
+MULTI_TEST_SOURCES = $(SRC_DIR)/aho_multi_test.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c $(SRC_DIR)/aho_app_config.c
+MULTI_TEST_OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(MULTI_TEST_SOURCES:.c=.o)))
+
+# --- Configurações do Exemplo STM32F0 ---
+STM32_EXAMPLE_EXECUTAVEL_NAME = stm32f0_example
+STM32_EXAMPLE_EXECUTAVEL = $(BUILD_DIR)/$(STM32_EXAMPLE_EXECUTAVEL_NAME)
+STM32_EXAMPLE_SOURCES = $(SRC_DIR)/stm32f0_example.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c
+STM32_EXAMPLE_OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(STM32_EXAMPLE_SOURCES:.c=.o)))
+
 # --- Configurações do Runner de Testes ---
 TEST_EXECUTAVEL_NAME = test_runner
 TEST_EXECUTAVEL = $(BUILD_DIR)/$(TEST_EXECUTAVEL_NAME)
@@ -70,6 +88,48 @@ $(TEST_EXECUTAVEL): $(TEST_OBJECTS) | $(BUILD_DIR)
 	@echo "$@ compilado com sucesso!"
 	@echo "Use 'make run_test' para executar os testes."
 
+# --- Regras para a Aplicação de Performance ---
+perf_app: CFLAGS = $(CFLAGS_COMMON) $(CFLAGS_DEBUG_SPECIFIC) -I$(INCLUDE_DIR)
+perf_app: $(PERF_APP_EXECUTAVEL)
+
+$(PERF_APP_EXECUTAVEL): $(PERF_APP_OBJECTS) | $(BUILD_DIR)
+	@echo "----------------------------------------------------"
+	@echo "Linkando aplicacao de performance: $@"
+	@echo "----------------------------------------------------"
+	$(CC) $(CFLAGS) $^ -o $@
+	@echo ""
+	@echo "$@ compilado com sucesso!"
+	@echo "Use 'make run_perf' para executar."
+
+perf_app_release: CFLAGS = $(CFLAGS_COMMON) $(CFLAGS_RELEASE_SPECIFIC) -I$(INCLUDE_DIR)
+perf_app_release: $(PERF_APP_EXECUTAVEL)
+
+# --- Regras para o Multi-Teste ---
+multi_test: CFLAGS = $(CFLAGS_COMMON) $(CFLAGS_DEBUG_SPECIFIC) -I$(INCLUDE_DIR)
+multi_test: $(MULTI_TEST_EXECUTAVEL)
+
+$(MULTI_TEST_EXECUTAVEL): $(MULTI_TEST_OBJECTS) | $(BUILD_DIR)
+	@echo "----------------------------------------------------"
+	@echo "Linkando multi-teste: $@"
+	@echo "----------------------------------------------------"
+	$(CC) $(CFLAGS) $^ -o $@
+	@echo ""
+	@echo "$@ compilado com sucesso!"
+	@echo "Use 'make run_multi_test' para executar."
+
+# --- Regras para o Exemplo STM32F0 ---
+stm32_example: CFLAGS = $(CFLAGS_COMMON) $(CFLAGS_DEBUG_SPECIFIC) -I$(INCLUDE_DIR)
+stm32_example: $(STM32_EXAMPLE_EXECUTAVEL)
+
+$(STM32_EXAMPLE_EXECUTAVEL): $(STM32_EXAMPLE_OBJECTS) | $(BUILD_DIR)
+	@echo "----------------------------------------------------"
+	@echo "Linkando exemplo STM32F0: $@"
+	@echo "----------------------------------------------------"
+	$(CC) $(CFLAGS) $^ -o $@
+	@echo ""
+	@echo "$@ compilado com sucesso!"
+	@echo "Use 'make run_stm32_example' para executar."
+
 # --- Regras Genéricas e Auxiliares ---
 
 # Regra para criar o diretório de build, se não existir
@@ -105,6 +165,30 @@ run_test: test
 	@echo "Executando testes: $(TEST_EXECUTAVEL)"
 	@echo "----------------------------------------------------"
 	$(TEST_EXECUTAVEL)
+
+run_perf: perf_app
+	@echo "----------------------------------------------------"
+	@echo "Executando aplicacao de performance: $(PERF_APP_EXECUTAVEL)"
+	@echo "----------------------------------------------------"
+	$(PERF_APP_EXECUTAVEL)
+
+run_perf_release: perf_app_release
+	@echo "----------------------------------------------------"
+	@echo "Executando aplicacao de performance (release): $(PERF_APP_EXECUTAVEL)"
+	@echo "----------------------------------------------------"
+	$(PERF_APP_EXECUTAVEL)
+
+run_multi_test: multi_test
+	@echo "----------------------------------------------------"
+	@echo "Executando multi-teste: $(MULTI_TEST_EXECUTAVEL)"
+	@echo "----------------------------------------------------"
+	$(MULTI_TEST_EXECUTAVEL)
+
+run_stm32_example: stm32_example
+	@echo "----------------------------------------------------"
+	@echo "Executando exemplo STM32F0: $(STM32_EXAMPLE_EXECUTAVEL)"
+	@echo "----------------------------------------------------"
+	$(STM32_EXAMPLE_EXECUTAVEL)
 
 # --- Regras de Análise de Memória com Valgrind ---
 
