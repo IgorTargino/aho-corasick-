@@ -19,9 +19,9 @@ BUILD_DIR = ./build
 REPORTS_DIR = ./reports
 
 # --- Configurações da Aplicação Principal ---
-APP_EXECUTAVEL_NAME = filtro_conteudo_app
+APP_EXECUTAVEL_NAME = benchmark
 APP_EXECUTAVEL = $(BUILD_DIR)/$(APP_EXECUTAVEL_NAME)
-APP_SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c
+APP_SOURCES = $(SRC_DIR)/benchmark.c $(SRC_DIR)/aho_corasick.c $(SRC_DIR)/aho_queue.c
 APP_OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(APP_SOURCES:.c=.o)))
 
 # --- Configurações do Runner de Testes ---
@@ -68,7 +68,7 @@ $(TEST_EXECUTAVEL): $(TEST_OBJECTS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $^ -o $@
 	@echo ""
 	@echo "$@ compilado com sucesso!"
-	@echo "Use 'make run_test' para executar os testes."
+	@echo "Use 'make run_test' para executar os testes.
 
 # --- Regras Genéricas e Auxiliares ---
 
@@ -134,11 +134,11 @@ valgrind_memory: debug check_valgrind | $(REPORTS_DIR)
 	@echo "===================================================="
 	@echo "📊 VALGRIND MASSIF - Análise Detalhada de Memória"
 	@echo "===================================================="
-	@echo "Executando: $(APP_EXECUTAVEL)"
+	@echo "Executando: $(BENCHMARK_EXECUTAVEL)"
 	@echo "Flags: $(VALGRIND_MASSIF_FLAGS)"
 	@echo "Arquivo de saída: $(REPORTS_DIR)/massif_$(TIMESTAMP).out"
 	@echo "----------------------------------------------------"
-	valgrind $(VALGRIND_MASSIF_FLAGS) $(APP_EXECUTAVEL)
+	valgrind $(VALGRIND_MASSIF_FLAGS) $(BENCHMARK_EXECUTAVEL)
 	@echo ""
 	@echo "✅ Análise de memória concluída"
 	@echo "📈 Para visualizar o relatório execute:"
@@ -206,10 +206,10 @@ time_stats: release | $(REPORTS_DIR)
 	@echo "===================================================="
 	@echo "⏱️  GNU TIME - Estatísticas do Sistema"
 	@echo "===================================================="
-	@echo "Executando: $(APP_EXECUTAVEL)"
+	@echo "Executando: $(BENCHMARK_EXECUTAVEL)"
 	@echo "Relatório: $(REPORTS_DIR)/time_stats_$(TIMESTAMP).log"
 	@echo "----------------------------------------------------"
-	/usr/bin/time -v $(APP_EXECUTAVEL) 2>&1 | tee $(REPORTS_DIR)/time_stats_$(TIMESTAMP).log
+	/usr/bin/time -v $(BENCHMARK_EXECUTAVEL) 2>&1 | tee $(REPORTS_DIR)/time_stats_$(TIMESTAMP).log
 	@echo ""
 	@echo "✅ Estatísticas coletadas"
 	@echo "📄 Relatório salvo em: $(REPORTS_DIR)/time_stats_$(TIMESTAMP).log"
